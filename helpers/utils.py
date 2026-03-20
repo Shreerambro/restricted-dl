@@ -131,11 +131,21 @@ def progressArgs(action: str, progress_message, start_time):
 
 
 async def send_media(
-    bot, message, media_path, media_type, caption, progress_message, start_time
+    bot,
+    message,
+    media_path,
+    media_type,
+    caption,
+    progress_message,
+    start_time,
+    send_to_chat: bool = True,
 ):
     file_size = os.path.getsize(media_path)
 
     if not await fileSizeLimit(file_size, message, "upload"):
+        return
+
+    if not send_to_chat:
         return
 
     progress_args = progressArgs("📥 Uploading Progress", progress_message, start_time)
@@ -210,7 +220,7 @@ async def send_media(
             raise
 
 
-async def download_single_media(msg, progress_message, start_time):
+async def download_single_media(msg, progress_message, start_time, return_media_obj=True):
     for attempt in range(2):
         try:
             media_path = await msg.download(
@@ -225,13 +235,17 @@ async def download_single_media(msg, progress_message, start_time):
             )
 
             if msg.photo:
-                return ("success", media_path, InputMediaPhoto(media=media_path, caption=parsed_caption))
+                media_obj = InputMediaPhoto(media=media_path, caption=parsed_caption)
+                return ("success", media_path, media_obj if return_media_obj else None)
             if msg.video:
-                return ("success", media_path, InputMediaVideo(media=media_path, caption=parsed_caption))
+                media_obj = InputMediaVideo(media=media_path, caption=parsed_caption)
+                return ("success", media_path, media_obj if return_media_obj else None)
             if msg.document:
-                return ("success", media_path, InputMediaDocument(media=media_path, caption=parsed_caption))
+                media_obj = InputMediaDocument(media=media_path, caption=parsed_caption)
+                return ("success", media_path, media_obj if return_media_obj else None)
             if msg.audio:
-                return ("success", media_path, InputMediaAudio(media=media_path, caption=parsed_caption))
+                media_obj = InputMediaAudio(media=media_path, caption=parsed_caption)
+                return ("success", media_path, media_obj if return_media_obj else None)
 
         except FloodWait as e:
             wait_s = int(getattr(e, "value", 0) or 0)
@@ -247,7 +261,7 @@ async def download_single_media(msg, progress_message, start_time):
     return ("skip", None, None)
 
 
-async def processMediaGroup(chat_message, bot, message):
+async def processMediaGroup(chat_message, bot, message, save_only: bool = False):
     media_group_messages = await chat_message.get_media_group()
     valid_media = []
     temp_paths = []
@@ -262,7 +276,14 @@ async def processMediaGroup(chat_message, bot, message):
     download_tasks = []
     for msg in media_group_messages:
         if msg.photo or msg.video or msg.document or msg.audio:
-            download_tasks.append(download_single_media(msg, progress_message, start_time))
+            download_tasks.append(
+                download_single_media(
+                    msg,
+                    progress_message,
+                    start_time,
+                    return_media_obj=not save_only,
+                )
+            )
 
     results = await asyncio.gather(*download_tasks, return_exceptions=True)
 
@@ -272,13 +293,22 @@ async def processMediaGroup(chat_message, bot, message):
             continue
 
         status, media_path, media_obj = result
-        if status == "success" and media_path and media_obj:
+        if status == "success" and media_path:
             temp_paths.append(media_path)
-            valid_media.append(media_obj)
+            if media_obj:
+                valid_media.append(media_obj)
         elif status == "error" and media_path:
             invalid_paths.append(media_path)
 
     LOGGER(__name__).info(f"Valid media count: {len(valid_media)}")
+
+    if save_only:
+        for path in invalid_paths:
+            cleanup_download(path)
+        await progress_message.edit(
+            f"✅ Saved `{len(temp_paths)}` file(s) on the server."
+        )
+        return True
 
     if valid_media:
         try:
