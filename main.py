@@ -76,6 +76,7 @@ async def start(_, message: Message):
         "👋 **Welcome to Media Downloader Bot!**\n\n"
         "I can grab photos, videos, audio, and documents from any Telegram post.\n"
         "Just send me a link (paste it directly or use `/dl <link>`),\n"
+        "or use `/save <link>` to keep the file only on the server.\n"
         "or reply to a message with `/dl`.\n\n"
         "ℹ️ Use `/help` to view all commands and examples.\n"
         "🔒 Make sure the user client is part of the chat.\n\n"
@@ -94,6 +95,8 @@ async def help_command(_, message: Message):
         "💡 **Media Downloader Bot Help**\n\n"
         "➤ **Download Media**\n"
         "   – Send `/dl <post_URL>` **or** just paste a Telegram post link to fetch photos, videos, audio, or documents.\n\n"
+        "➤ **Save Only**\n"
+        "   – Send `/save <post_URL>` to download the file to the NAS and keep it in `downloads/` without sending it back into the chat.\n\n"
         "➤ **Batch Download**\n"
         "   – Send `/bdl start_link end_link` to grab a series of posts in one go.\n"
         "     💡 Example: `/bdl https://t.me/mychannel/100 https://t.me/mychannel/120`\n"
@@ -134,7 +137,7 @@ async def cleanup_storage(_, message: Message):
         return await message.reply("❌ **Cleanup failed.** Check logs for details.")
 
 
-async def handle_download(bot: Client, message: Message, post_url: str):
+async def handle_download(bot: Client, message: Message, post_url: str, save_only: bool = False):
     async with download_semaphore:
         if "?" in post_url:
             post_url = post_url.split("?", 1)[0]
@@ -154,10 +157,11 @@ async def handle_download(bot: Client, message: Message, post_url: str):
                     else chat_message.audio.file_size
                 )
 
-                if not await fileSizeLimit(
-                    file_size, message, "download", user.me.is_premium
-                ):
-                    return
+                if not save_only:
+                    if not await fileSizeLimit(
+                        file_size, message, "download", user.me.is_premium
+                    ):
+                        return
 
             parsed_caption = await get_parsed_msg(
                 chat_message.caption or "", chat_message.caption_entities
@@ -167,7 +171,12 @@ async def handle_download(bot: Client, message: Message, post_url: str):
             )
 
             if chat_message.media_group_id:
-                if not await processMediaGroup(chat_message, bot, message):
+                if not await processMediaGroup(
+                    chat_message,
+                    bot,
+                    message,
+                    save_only=save_only,
+                ):
                     await message.reply(
                         "**Could not extract any valid media from the media group.**"
                     )
@@ -220,18 +229,22 @@ async def handle_download(bot: Client, message: Message, post_url: str):
                     if chat_message.audio
                     else "document"
                 )
-                await send_media(
-                    bot,
-                    message,
-                    media_path,
-                    media_type,
-                    parsed_caption,
-                    progress_message,
-                    start_time,
-                )
-
-                cleanup_download(media_path)
-                await progress_message.delete()
+                if save_only:
+                    await progress_message.edit(
+                        f"✅ **Saved on server:** `{media_path}`"
+                    )
+                else:
+                    await send_media(
+                        bot,
+                        message,
+                        media_path,
+                        media_type,
+                        parsed_caption,
+                        progress_message,
+                        start_time,
+                    )
+                    cleanup_download(media_path)
+                    await progress_message.delete()
 
             elif chat_message.text or chat_message.caption:
                 await message.reply(parsed_text or parsed_caption)
@@ -260,6 +273,16 @@ async def download_media(bot: Client, message: Message):
 
     post_url = message.command[1]
     await track_task(handle_download(bot, message, post_url))
+
+
+@bot.on_message(filters.command("save") & filters.private)
+async def save_media(bot: Client, message: Message):
+    if len(message.command) < 2:
+        await message.reply("**Provide a post URL after the /save command.**")
+        return
+
+    post_url = message.command[1]
+    await track_task(handle_download(bot, message, post_url, save_only=True))
 
 
 @bot.on_message(filters.command("bdl") & filters.private)

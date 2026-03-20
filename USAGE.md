@@ -64,6 +64,11 @@ docker compose logs -f
 /dl https://t.me/c/123456789/10
 ```
 
+**Save only on the NAS:**
+```
+/save https://t.me/c/123456789/10
+```
+
 **Batch range:**
 ```
 /bdl https://t.me/c/123456789/3 https://t.me/c/123456789/2598
@@ -139,4 +144,3 @@ Telegram will ask you to wait (e.g., “wait 2500 seconds”).
 1) `docker compose down`
 2) `docker compose up -d --build --remove-orphans`
 3) `docker compose logs -f`
-

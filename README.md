@@ -71,6 +71,7 @@ docker compose down
 - **`/start`** – Welcomes you and gives a brief introduction.  
 - **`/help`** – Shows detailed instructions and examples.  
 - **`/dl <post_URL>`** or simply paste a Telegram post link – Fetch photos, videos, audio, or documents from that post.  
+- **`/save <post_URL>`** – Download the file to the NAS and keep it in `downloads/` without sending it back into the chat.  
 - **`/bdl <start_link> <end_link>`** – Batch-download a range of posts in one go.  
 
   > 💡 Example: `/bdl https://t.me/mychannel/100 https://t.me/mychannel/120`  
