@@ -1,7 +1,7 @@
 {
   "name": "Restricted Content Downloader",
   "description": "Download restricted photos, videos, and documents from Telegram private chats/channels.",
-  "repository": "https://github.com/bisnuray/RestrictedContentDL",
+  "repository": "https://github.com/Shreerambro/restricted-dl",
   "logo": "https://telegram.org/img/t_logo.png",
   "keywords": ["python", "telegram", "kurigram", "restricted-content", "downloader"],
   "env": {
