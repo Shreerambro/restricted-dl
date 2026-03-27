@@ -1,7 +1,7 @@
 {
   "name": "RestrictedContentDL Bot",
   "description": "Telegram bot to download restricted content from channels/groups.",
-  "repository": "https://github.com/bisnuray/RestrictedContentDL",
+  "repository": "https://github.com/Shreerambro/restricted-dl",
   "logo": "https://telegram.org/img/t_logo.png",
   "keywords": ["python", "telegram", "bot", "downloader", "restricted-content"],
   "env": {
