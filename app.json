@@ -1,0 +1,44 @@
+{
+  "name": "Restricted Content Downloader",
+  "description": "Download restricted photos, videos, and documents from Telegram private chats/channels.",
+  "repository": "https://github.com/bisnuray/RestrictedContentDL",
+  "logo": "https://telegram.org/img/t_logo.png",
+  "keywords": ["python", "telegram", "kurigram", "restricted-content", "downloader"],
+  "env": {
+    "API_ID": {
+      "description": "Teri API_ID (my.telegram.org se).",
+      "required": true
+    },
+    "API_HASH": {
+      "description": "Teri API_HASH (my.telegram.org se).",
+      "required": true
+    },
+    "BOT_TOKEN": {
+      "description": "Bot token jo @BotFather ne diya hai.",
+      "required": true
+    },
+    "SESSION_STRING": {
+      "description": "Pyrogram Session String (@TgDevToolBot se nikaal lena).",
+      "required": true
+    },
+    "FORWARD_CHAT_ID": {
+      "description": "Optional: Jahan content forward karna hai (Example: -1001234567890). Khali chhodd de agar nahi chahiye.",
+      "required": false,
+      "value": ""
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    },
+    {
+      "url": "https://github.com/heroku/heroku-buildpack-apt"
+    }
+  ],
+  "formation": {
+    "worker": {
+      "quantity": 1,
+      "size": "basic"
+    }
+  }
+}
